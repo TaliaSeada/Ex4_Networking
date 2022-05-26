@@ -82,7 +82,7 @@ int main() {
     memset(&serverAddress, 0, sizeof(serverAddress));
 
     serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
+    serverAddress.sin_addr.s_addr = htonl(INADDR_ANY);
     serverAddress.sin_port = htons(SERVER_PORT);  //network order
 
     // Bind the socket to the port with any IP at this port
@@ -117,7 +117,6 @@ int main() {
 
     //Accept and incoming connection
     printf("Waiting for incoming TCP-connections...\n");
-
     struct sockaddr_in clientAddress;  //
     socklen_t clientAddressLen = sizeof(clientAddress);
     double times[5] = {0};
@@ -127,7 +126,6 @@ int main() {
     double avgR = 0;
     int count = 0;
     double times2[5] = {0};
-    printf("before while");
     while (1) {
         memset(&clientAddress, 0, sizeof(clientAddress));
         clientAddressLen = sizeof(clientAddress);
@@ -181,8 +179,11 @@ int main() {
         times[count] = (double) (end - start) / CLOCKS_PER_SEC;
 
 
-        start = clock();
-        while (1) {
+        for(int i = 0; i < 5; i ++)
+        {
+            start = clock();
+
+            while (1) {
             char buffer[SIZE] = {0};
             int n = recv(clientSocket, buffer, SIZE, 0);
             if (n <= 0) {
@@ -191,31 +192,27 @@ int main() {
             bzero(buffer, SIZE);
 
         }
-        end = clock();
-        times2[count] = (double) (end - start) / CLOCKS_PER_SEC;
+            end = clock();
+            times2[i] = (double) (end - start) / CLOCKS_PER_SEC;
+            printf("time took %.2f\n",times[i]);
+        }
+        
+       
+        //printf("time took %.2f\n",times2[count]);
 
 
 
 
 
         close(listeningSocket);
-        count++;
-        if(count == 5)
-        {
-            break;
-        }
+        break;
+        
 
     }
     for (int i = 0; i < 5; i++) {
         sum += times[i];
     }
     avgC = sum / 5.0;
-
-    for (int i = 0; i < 5; i++) {
-        sum2 += times2[i];
-    }
-    avgR = sum2 / 5.0;
     printf("average time for cubic %.2f\n",avgC);
-    printf("average time for cubic %.2f\n",avgR);
     return 0;
 }
