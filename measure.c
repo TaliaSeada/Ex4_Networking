@@ -13,11 +13,10 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
-
 #endif
 #define SIZE 1024
 #define SERVER_PORT 5060  //The port that the server listens
-
+#define SIZEFILE 1048576
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,14 +86,7 @@ int main() {
 
     // Bind the socket to the port with any IP at this port
     if (bind(listeningSocket, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) == -1) {
-        printf("Bind failed with error code : %d",
-#if defined _WIN32
-                WSAGetLastError()
-#else
-               errno
-#endif
-        );
-        // TODO: close the socket
+        printf("Bind failed with error code : %d",errno);
         return -1;
     }
 
@@ -104,14 +96,7 @@ int main() {
     if (listen(listeningSocket, 500) == -1) //500 is a Maximum size of queue connection requests
         //number of concurrent connections
     {
-        printf("listen() failed with error code : %d"
-#if defined _WIN32
-                ,WSAGetLastError()
-#else
-                , errno
-#endif
-        );
-        // TODO: close the socket
+        printf("listen() failed with error code : %d",errno);
         return -1;
     }
 
@@ -126,93 +111,48 @@ int main() {
     double avgR = 0;
     int count = 0;
     double times2[5] = {0};
-    while (1) {
-        memset(&clientAddress, 0, sizeof(clientAddress));
-        clientAddressLen = sizeof(clientAddress);
-        int clientSocket = accept(listeningSocket, (struct sockaddr *) &clientAddress, &clientAddressLen);
-        if (clientSocket == -1) {
-            printf("listen failed with error code : %d"
-#if defined _WIN32
-                    ,WSAGetLastError()
-#else
-                    , errno
-#endif
-            );
-            // TODO: close the sockets
-            return -1;
-        }
+    int clientSocket = accept(listeningSocket,(struct sockaddr*)&clientAddress,&clientAddressLen);
+    char buffer[SIZEFILE];
 
-        printf("A new client connection accepted\n");
-
-        //Reply to client
-        char message[] = "Welcome to our TCP-server\n";
-        int messageLen = strlen(message) + 1;
-
-        int bytesSent = send(clientSocket, message, messageLen, 0);
-        if (-1 == bytesSent) {
-            printf("send() failed with error code : %d"
-#if defined _WIN32
-                    ,WSAGetLastError()
-#else
-                    , errno
-#endif
-            );
-        } else if (0 == bytesSent) {
-            printf("peer has closed the TCP connection prior to send().\n");
-        } else if (messageLen > bytesSent) {
-            printf("sent only %d bytes from the required %d.\n", messageLen, bytesSent);
-        } else {
-            printf("message was successfully sent .\n");
-        }
-
+    unsigned long sumGot = 0;
+    while(sumGot <= 10 * SIZEFILE)
+    {
         clock_t start = clock();
-        while (1) {
-            char buffer[SIZE] = {0};
-            int n = recv(clientSocket, buffer, SIZE, 0);
-            if (n <= 0) {
-                break;
-            }
-            bzero(buffer, SIZE);
-
-        }
-        clock_t end = clock();
-        times[count] = (double) (end - start) / CLOCKS_PER_SEC;
-
-
-        for(int i = 0; i < 5; i ++)
+        sumGot += recv(clientSocket,buffer,SIZEFILE,0);
+        printf("%ld bytes got\n",sumGot);
+        if(sumGot <= 0)
         {
-            start = clock();
-
-            while (1) {
-            char buffer[SIZE] = {0};
-            int n = recv(clientSocket, buffer, SIZE, 0);
-            if (n <= 0) {
-                break;
-            }
-            bzero(buffer, SIZE);
-
+            break;
         }
-            end = clock();
-            times2[i] = (double) (end - start) / CLOCKS_PER_SEC;
-            printf("time took %.2f\n",times[i]);
+        bzero(buffer,SIZEFILE);
+        clock_t end = clock();
+        if(sumGot <= 5 * SIZEFILE)
+        {
+            times[count] = ((double) (end - start));
+            count++;
         }
-        
-       
-        //printf("time took %.2f\n",times2[count]);
-
-
-
-
-
-        close(listeningSocket);
-        break;
-        
-
+        else
+        {
+            times2[count] = ((double) (end - start));
+            count++;
+        }
     }
-    for (int i = 0; i < 5; i++) {
+    for(int i = 0; i < 5; i++)
+    {
         sum += times[i];
     }
-    avgC = sum / 5.0;
-    printf("average time for cubic %.2f\n",avgC);
+    avgC = sum/5.0;
+
+    for(int i = 0; i < 5; i++)
+    {
+        sum2 += times2[i];
+    }
+    avgR = sum2/5.0;
+
+    printf("seconds for cubic 25 percent packet loss: %.6f\n", avgC/CLOCKS_PER_SEC);
+    printf("seconds for reno 25 percent packet loss: %.6f\n", avgR/CLOCKS_PER_SEC);
+    close(clientSocket);
     return 0;
+
+
 }
