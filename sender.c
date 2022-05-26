@@ -5,6 +5,7 @@
 #include <string.h> 
 #include <unistd.h> 
 
+// client
 int main(int argc, char **argv) {
     // open a TCP socket
     char buf[256];
@@ -19,8 +20,7 @@ int main(int argc, char **argv) {
     if (getsockopt(sock, IPPROTO_TCP, TCP_CONGESTION, buf, &len) != 0) { 
         perror("getsockopt");
         return -1;
-    } 
-
+    }
     printf("Current: %s\n", buf); 
 
     // connect with measure.c
