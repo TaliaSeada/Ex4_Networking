@@ -11,18 +11,16 @@
 #define PORT 5060
 // client
 #define SIZE 1048576
-
 void send_file(FILE *fp, int sockfd) {
     size_t num = 0;
     char data[SIZE] = {0};
     struct timeval begin,end;
     gettimeofday(&begin, 0);
-    while (fgets(data, SIZE, fp) != NULL) {
+    while (fgets(data, SIZE+1, fp) != NULL) {
         if ((num += send(sockfd, data, SIZE, 0)) == -1) { //to check if the file is sent or not
             perror("sending file error");
             exit(1);
         }
-//        num = num + strlen(data); //to get the lenght of the file
         bzero(data, SIZE);
     }
     gettimeofday(&end, 0);
@@ -106,7 +104,7 @@ int main(int argc, char **argv) {
 
     }
     // close the socket
-    close(sock);
+    printf("waiting for server to finish getting files\n");
     printf("finished sending files");
     return 0;
 }
