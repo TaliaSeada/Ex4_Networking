@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
     }
     // close the socket
     printf("waiting for server to finish getting files\n");
+    close(sock);
     printf("finished sending files");
     return 0;
 }
